@@ -1,0 +1,89 @@
+---
+title: "The Politics of Warehousing in the Inland Empire, CA: How did we get here?"
+subtitle: "Web Scraping - Data Collection"
+author: "By: Alyson Otañez"
+output: html_document
+---
+###### Reading scanned pdf text of Ontario and March Joint Powers Authority City Council Agendas
+####### Website Links:
+- Ontario - https://www.ontarioca.gov/Agendas/CityCouncil
+- March Joint Powers Authority - https://marchjpa.com/meetings-agendas/
+
+###### Note: This is just a template
+
+
+#### Setup
+```{r eval=FALSE, include=TRUE}
+
+# Clean environment
+rm(list=ls(all=TRUE))
+
+
+# Install packages if necessary
+#install.packages('tidyverse')
+#install.packages('tesseract')
+#install.packages('pdftools')
+
+# Load packages 
+require(tidyverse)
+require(tesseract)
+require(pdftools)
+```
+
+#### Load data
+```{r eval=FALSE, include=TRUE}
+# Load df 
+df <- read.csv('marchjpa.csv')
+
+df2 <- read.csv('ontario.csv')
+
+```
+
+#### Determine missing data
+```{r eval=FALSE, include=TRUE}
+# Extract links that have missing text and store them in a data frame
+missing_text_links <- df %>%
+  subset(is.na(Text) | grepl("^\\s*$", Text)) %>%
+  select(PDF.Link)
+print(missing_text_links$PDF.Link)
+```
+
+#### Data frame of missing data
+```{r eval=FALSE, include=TRUE}
+# Empty data frame to store text and PDF.Links 
+df_text <- data.frame(Text = character(), PDF.Link = character(), stringsAsFactors = FALSE)
+```
+
+#### Loop to read PDF's
+```{r eval=FALSE, include=TRUE}
+# For loop to read text 
+# Loop must be ran twice for each city council 
+for (link in missing_text_links$PDF.Link) {
+  Sys.sleep(runif(1,1,5))
+  pdf.text <- pdf_convert(link, dpi = 600) %>%
+    map(ocr) %>% 
+    str_replace_all('\n', ' ') %>%
+    unlist ()
+  pdf.text.all <- paste(pdf.text, collapse = "\n")
+  df_updated <- rbind(df_text, data.frame(PDF.Link = link, Text = pdf.text.all), stringsAsFactors = FALSE)
+}
+```
+
+#### Combine and save
+```{r eval=FALSE, include=TRUE}
+# Select those who originally had text 
+df_old_text <- df %>%
+  subset(!is.na(Text) & !grepl("^\\s*$", Text))
+```
+
+```{r eval=FALSE, include=TRUE}
+# Merging data sets of those who have text, and text you just gathered 
+completed_df <- rbind(df_text, df_old_text)
+```
+
+```{r eval=FALSE, include=TRUE}
+# Save as csv 
+write.csv(completed_df, 'marchjpa_complete.csv')
+
+write.csv(completed_df, 'ontario_complete.csv')
+```
