@@ -1,6 +1,6 @@
 # The Politics of Warehousing in the Inland Empire, CA: How did we get here?
 ## By: Alyson Otañez
-### Advisor: Dr. Marisa Abrajano
+##### Advisor: Dr. Marisa Abrajano
 
 ## Background
   The Inland Empire (IE) is made up of the San Bernardino and Riverside counties, just east of Los Angeles in Southern California. The IE has experienced rapid economic and industrial growth as a result of the increased demand of e-commerce and fast delivery, which has led to decreased air quality, loss of green space, and health impacts to the region. At the local and state level, this region and its people have been treated as disposable and as the “land of cheap dirt." Warehouse development and placement has proven to be an environmental injustice issue, with over 300,000 individuals living within ¼ mile of a warehouse, roughly 60% of which are Hispanic/Latino. San Bernardino and Riverside counties are also the top two counties in the United States with high concentrations of ozone, where over a third of their year is met with dangerous levels of ozone.
