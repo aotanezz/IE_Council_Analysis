@@ -47,5 +47,5 @@ Additional plots and figures can be found in `Figures`, maps can be found in `Ma
 
 The research completed at the end of summer 2023 was presented at the 2023 UC San Diego Summer Research Conference, and at the 2023 University of Maryland Rising Scholars Conference. 
 
-3. To continue this research I participated in the [Political Science Senior Honors Program](https://polisci.ucsd.edu/undergrad/departmental-honors-and-pi-sigma-alpha/departmental-honors.html) where I received **High Honors** and the **DeWitt Higgs Award for the Most Outstanding Honors Thesis in Law and Public Policy**.
+3. To continue this research I participated in the [Political Science Senior Honors Program](https://polisci.ucsd.edu/undergrad/departmental-honors-and-pi-sigma-alpha/departmental-honors.html) throughout 2024-2025 where I received **High Honors** and the **DeWitt Higgs Award for the Most Outstanding Honors Thesis in Law and Public Policy**.
 
