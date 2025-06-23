@@ -41,5 +41,11 @@ issues.
 Additional plots and figures can be found in `Figures`, maps can be found in `Maps`, and the final paper can be found in `Thesis`.
 
 ## Information on Project
-This research project began as an Independent Study ( [POLI 199](https://polisci.ucsd.edu/undergrad/research-opportunities/Independent%20Study%20-%20POLI%20199.html) ) in the Political Science Deparatment at UC San Diego in 2023.
+
+1. This research project began as an Independent Study ([POLI 199](https://polisci.ucsd.edu/undergrad/research-opportunities/Independent%20Study%20-%20POLI%20199.html)) in the Political Science Deparatment at UC San Diego in 2023.
+2. I then was 1 of 4 recipients of a $5,000 scholarship from the [UCSD TRELS](https://ugresearch.ucsd.edu/programs/all-urh-programs/trels/index.html) program to conduct summer research with a faculty member in summer 2023 ([My Profile](https://ugresearch.ucsd.edu/students/student-profiles/archive/2023-2024/alyson-ota%C3%B1ez.html)).
+
+The research completed at the end of summer 2023 was presented at the 2023 UC San Diego Summer Research Conference, and at the 2023 University of Maryland Rising Scholars Conference. 
+
+3. To continue this research I participated in the [Political Science Senior Honors Program](https://polisci.ucsd.edu/undergrad/departmental-honors-and-pi-sigma-alpha/departmental-honors.html) where I received **High Honors** and the **DeWitt Higgs Award for the Most Outstanding Honors Thesis in Law and Public Policy**.
 
