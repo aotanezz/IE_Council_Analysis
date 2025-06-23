@@ -41,5 +41,5 @@ issues.
 Additional plots and figures can be found in `Figures`, maps can be found in `Maps`, and the final paper can be found in `Thesis`.
 
 ## Information on Project
-This research project began as an Independent Study ( [POLI 199] (https://polisci.ucsd.edu/undergrad/research-opportunities/Independent%20Study%20-%20POLI%20199.html) ) in the Political Science Deparatment at UC San Diego in 2023.
+This research project began as an Independent Study ( [POLI 199](https://polisci.ucsd.edu/undergrad/research-opportunities/Independent%20Study%20-%20POLI%20199.html) ) in the Political Science Deparatment at UC San Diego in 2023.
 
