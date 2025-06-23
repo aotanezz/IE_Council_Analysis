@@ -17,9 +17,9 @@ How have local elected officials in the IE facilitated the growth of industrial 
 ## Data
 Scraped the city council meeting agenda/minutes of Ontario, Fontana, Rialto, Chino, and the March Joint Powers Authority. Templates to scrape the data can be found in the `Web_Scraping` folder. Each website was scraped indivually and combined into one file. A PDF (that must be downloaded to access the links) can be found in the `Data` folder, within the folder there is a small sample of the data for reference. 
 
-Google Drive with all data sets: https://drive.google.com/drive/folders/1VLErQ8uxj7wk_5ENa5H1SLVD98MowPkc?usp=sharing
+[Google Drive with all data sets](https://drive.google.com/drive/folders/1VLErQ8uxj7wk_5ENa5H1SLVD98MowPkc?usp=sharing)
 
-Combined data: https://drive.google.com/file/d/1or3ZNrS9mVwjXdhX2DUCPjRyUwgrauiv/view?usp=sharing 
+[Combined data](https://drive.google.com/file/d/1or3ZNrS9mVwjXdhX2DUCPjRyUwgrauiv/view?usp=sharing) 
 
 **N = 5,526** 
 
