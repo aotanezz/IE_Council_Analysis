@@ -1,12 +1,14 @@
 # The Politics of Warehousing in the Inland Empire, CA: How did we get here?
 # Structural Topic Model (STM)
-# Note: Only for Ontario, same process done for all cities
 # By: Alyson Otañez
+
+################################################################################
+# Setup 
 
 rm(list=ls(all=TRUE))
 
 # Set working directory 
-setwd('')
+setwd('/Users/alysonotanez/Desktop/IE_STM_Files/Data')
 
 # Load packages
 library(RColorBrewer)
@@ -23,139 +25,299 @@ library(wordcloud)
 library(tidytext)
 library(patchwork)
 library(dplyr)
+library(stringr)
+library(textstem)
+library(tidytext)
 
 # Load data
-ontario <- read_csv('ontario_complete.csv')
+ie_cities <- read.csv('ie_cities.csv')
+ie_cities <- ie_cities %>%
+  filter(!is.na(Text))
 
-# Create corpus for each data frame
-corpus_ontario <- corpus(ontario, text_field = 'Text')
+################################################################################
+# Data Cleaning 
 
-# Pre-processing, removing stop words, and creating dfm 
-toks_ont <- tokens(corpus_ontario, remove_punct = TRUE, remove_numbers=TRUE)
-toks_ont <- tokens_wordstem(toks_ont)
-toks_ont <- tokens_select(toks_ont,  stopwords("en"), selection = "remove")
-dfm_ont <- dfm(toks_ont)
-dfm_ontario <- dfm_trim(dfm_ont, min_docfreq = 0.2, docfreq_type = "prop")
+# Clean HTML Text
+# Define the text preprocessing function
+txt_preprocess_pipeline <- function(text) {
+  standard_txt <- tolower(text)
+  clean_txt <- str_replace_all(standard_txt, "http\\S+|www\\S+|https\\S+", "")
+  clean_txt <- str_replace_all(clean_txt, "\\n", " ")
+  clean_txt <- str_replace_all(clean_txt, "\\s+", " ")
+  clean_txt <- str_replace_all(clean_txt, "\\S+@\\S+", "")
+  clean_txt <- str_replace_all(clean_txt, "<.*?>", "")
+  clean_txt <- str_replace_all(clean_txt, "[^\\w\\s]", "")
+  clean_txt <- str_replace_all(clean_txt, "\\b\\w{1,2}\\b", "")
+  tokens <- unlist(str_split(clean_txt, "\\s+"))
+  filtered_tokens_alpha <- tokens[grepl("^[a-zA-Z]+$", tokens) & 
+                                    !grepl("^[ivxlcdm]+$", tokens, 
+                                           ignore.case = TRUE)]
+  stop_words <- c(stopwords("en"),
+                  "chino", "fontana", "march", "joint", "powers", "authority", 
+                  "http", "rialto", "ontario", "city", "council", "agenda",
+                  "meeting", "minutes", "back", "site", "main", "welcome", "browse", "video",
+                  "monday", "tuesday", "wednesday", "thursday", "friday", 
+                  "saturday", "sunday", "notice", "commission", "archive", "pmcity",
+                  "chamber", "palm", "ave", "january", "february", "march", "april", "may",
+                  "june", "july", "august", "september", "october", "november", "december",
+                  "closed", "session")
+  filtered_tokens_final <- filtered_tokens_alpha[!filtered_tokens_alpha %in% stop_words]
+  lemma_tokens <- lemmatize_words(filtered_tokens_final)
+  return(lemma_tokens)
+}
 
-# Classifying by keyword 
-industrial <- c('warehouse', 'logistics center', 'distribution center', 'industrial', 'warehousing')
-recreation <- c('recreation', 'park', 'open space', 'green space', 'pool', 'outdoor')
-housing <- c('home', 'apartment', 'townhouse', 'condominium', 'affordable housing')
-transportation <- c('transportation', 'bus', 'public transport', 'public transportation', 'bus route', 'train')
+# Apply function to clean text
+ie_cities$Processed_Text <- sapply(ie_cities$Text, txt_preprocess_pipeline)
 
-ontario$industrial <- ifelse(grepl(paste(industrial, collapse = "|"), ontario$Text), 1, 0)
-ontario$recreation <- ifelse(grepl(paste(recreation, collapse = "|"), ontario$Text), 1, 0)
-ontario$housing <- ifelse(grepl(paste(housing, collapse = "|"), ontario$Text), 1, 0)
-ontario$transportation <- ifelse(grepl(paste(transportation, collapse = "|"), ontario$Text), 1, 0)
+# Clean HTML text for STM 
+rmv_html <- function(text) {
+  clean_txt <- tolower(text)
+  clean_txt <- str_replace_all(clean_txt, "http\\S+|www\\S+|https\\S+", "") # Remove URLs
+  clean_txt <- str_replace_all(clean_txt, "<[^>]+>", "") # Remove HTML tags
+  clean_txt <- str_replace_all(clean_txt, "\\s+", " ") # Remove extra spaces
+  clean_txt <- str_replace_all(clean_txt, "[^\\w\\s]", "") # Remove punctuation
+  clean_txt <- str_replace_all(clean_txt, "\\b\\w{1,2}\\b", "") # Remove short words
+  return(clean_txt)
+}
 
-# Filtering data
-ontario_industrial <- ontario[ontario$industrial == 1,]
-ontario_industrial <- ontario_industrial %>%
-  mutate(Topic = ifelse(industrial == 1, 'Warehousing', industrial))
+# Apply function to clean text
+ie_cities$Clean_Text <- sapply(ie_cities$Text, rmv_html)
 
-ontario_recreation <- ontario[ontario$recreation == 1,]
-ontario_recreation <- ontario_recreation %>%
-  mutate(Topic = ifelse(recreation == 1, 'Recreation', recreation))
+################################################################################
+# Classify documents based on keyword prevalence 
 
-ontario_housing <- ontario[ontario$housing == 1,]
-ontario_housing <- ontario_housing %>%
-  mutate(Topic = ifelse(housing == 1, 'Housing', housing))
+# Define keywords
+industrial <- c('warehouse', 'logistics', 'distribution', 'shipping',
+                'industrial', 'warehousing', 'diesel', 'freight', 'cargo', 
+                'zoning', 'zone')
+housing <- c('home', 'house', 'apartment', 'townhouse', 'condominium', 
+             'housing', 'rent', 'mortgage', 'residential', 'homeless',
+             'homelessness')
+jobs <- c('job', 'economy', 'workforce', 'employment', 'wages', 'trade', 
+          'salary', 'workers', 'unemployment', 'jobs', 'employer')
+safety <- c('police', 'safety', 'crime', 'security', 'firefighter', 'drugs', 
+            'theft', 'gun', 'violence', 'paramedic', 'policing')
 
-ontario_transportation <- ontario[ontario$transportation == 1,]
-ontario_transportation <- ontario_transportation %>%
-  mutate(Topic = ifelse(transportation == 1, 'Transportation', transportation))
+# Count keyword appearance in text
 
-ontario_indust_rec <- rbind(ontario_industrial, ontario_recreation)
-ontario_indust_hou <- rbind(ontario_industrial, ontario_housing)
-ontario_indust_trans <- rbind(ontario_industrial, ontario_transportation)
+# Industrial
+count_industrial <- function(text) {
+  words <- unlist(strsplit(tolower(text), "\\s+"))
+  return(sum(words %in% industrial))
+}
 
-# Structural Topic Model #
+ie_cities$Sum_Industrial <- sapply(ie_cities$Processed_Text, count_industrial)
 
-# Industrial vs. Recreation 
-remove_ontario <- c('ontario', 'city', 'council', 'agenda', 'regular', 'chambers', 'meeting', 'pdf', 
-                    'adjournment', 'roll call', 'call to order', 'minutes') 
+# Housing
+count_housing <- function(text) {
+  words <- unlist(strsplit(tolower(text), "\\s+"))
+  return(sum(words %in% housing))
+}
 
-temp_ontario_indust_rec <- textProcessor(documents = ontario_indust_rec$Text, 
-                                         metadata = ontario_indust_rec, 
-                                         customstopwords = remove_ontario)
+ie_cities$Sum_Housing <- sapply(ie_cities$Processed_Text, count_housing)
 
-out_ontario_indust_rec <- prepDocuments(temp_ontario_indust_rec$documents, 
-                                        temp_ontario_indust_rec$vocab, 
-                                        temp_ontario_indust_rec$meta)
+# Jobs and the economy
+count_jobs <- function(text) {
+  words <- unlist(strsplit(tolower(text), "\\s+"))
+  return(sum(words %in% jobs))
+}
 
-model.stm.ontario.1 <- stm(out_ontario_indust_rec$documents, out_ontario_indust_rec$vocab, K = 10,
-                           prevalence = ~Topic, data = out_ontario_indust_rec$meta)
-labels_ontario_1 <- labelTopics(model.stm.ontario.1)
-labels_ontario_1
-plot(model.stm.ontario.1, n=10, main = 'Top Topics Discussed: Warehousing + Recreation')
+ie_cities$Sum_Jobs <- sapply(ie_cities$Processed_Text, count_jobs)
 
-model.stm.ee.ont.1 <- estimateEffect(1:10 ~ Topic, model.stm.ontario.1, meta = out_ontario_indust_rec$meta)
+# Public safety
+count_safety <- function(text) {
+  words <- unlist(strsplit(tolower(text), "\\s+"))
+  return(sum(words %in% safety))
+}
 
-plot(model.stm.ee.ont.1, covariate = 'Topic', topics = c(3, 4, 6, 7, 9, 10),
-     model = model.stm.ontario.1, method = "difference",
-     cov.value1 = "Warehousing", cov.value2 = "Recreation",
-     xlab = " Most recreation ... Most warehousing", main = 'Discussion of Warehousing vs. Recreation',
+ie_cities$Sum_Safety <- sapply(ie_cities$Processed_Text, count_safety)
+
+# Classify
+ie_cities$Type <- apply(ie_cities[, c("Sum_Industrial", "Sum_Jobs",
+                                      "Sum_Safety", "Sum_Housing")], 1, 
+                        function(row) {
+                          names(row)[which.max(row)]
+                        })
+
+# Rename the values in the 'Type' column
+rename <- c(Sum_Industrial = "Industrial", 
+            Sum_Jobs = "Jobs & Economy", 
+            Sum_Safety = "Public Safety",
+            Sum_Housing = "Housing")
+
+ie_cities$Type <- unname(rename[ie_cities$Type])
+
+# Save files
+ie_cities2 <- ie_cities %>%
+  select(-Processed_Text)
+
+write.csv(ie_cities2, 'IE_Cities_Processed.csv')
+
+################################################################################
+# Structural Topic Model
+###############################################################################
+
+# Setup 
+ie_cities <- read.csv('IE_Cities_Processed.csv')
+
+ie_cities <- ie_cities %>%
+  select(-X)
+
+# Split data 
+industrial <- ie_cities %>%
+  filter(Type == 'Industrial')
+
+housing <- ie_cities %>%
+  filter(Type == 'Housing')
+
+jobs <- ie_cities %>%
+  filter(Type == 'Jobs & Economy')
+
+safety <- ie_cities %>%
+  filter(Type == 'Public Safety')
+
+ie_cities <- ie_cities %>%
+  count(Type) %>%
+  mutate(percentage = n / sum(n) * 100)
+
+ggplot(ie_cities, aes(x = reorder(Type, percentage), y = percentage, fill = Type)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  geom_text(aes(label = paste0(round(percentage, 1), "%")), 
+            vjust = 1.5, size = 5, color = "white") +  
+  labs(
+    x = "Cateogory",
+    y = "Percentage",
+    title = "IE City Council Topics"
+  ) +
+  scale_fill_manual(values = c("Industrial" = "#FF9999", "Housing" = "#99CCFF", "Public Safety" = "#E69F00",
+                               'Jobs & Economy' = "#009E73")) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 13)
+  )
+
+# Combine with industrial for comparison 
+industrial_housing <- rbind(industrial, housing)
+industrial_jobs <- rbind(industrial, jobs)
+industrial_safety <- rbind(industrial, safety)
+
+rm(industrial)
+rm(housing)
+rm(jobs)
+rm(safety)
+
+########
+# Models
+
+# Industrial vs. Housing
+remove <- c('fontana', 'ontario', 'chino', 'rialto', 'citi', 'shall',
+            'council', 'page', 'city', 'meet', 'minute', 'minutes', 
+            'commission', 'regular', 'public', 'cities', 'march') 
+
+temp1 <- textProcessor(documents = industrial_housing$Clean_Text, 
+                       metadata = industrial_housing,
+                       customstopwords = remove)
+
+out1 <- prepDocuments(temp1$documents, 
+                      temp1$vocab, 
+                      temp1$meta)
+
+model1 <- stm(out1$documents, out1$vocab, K = 10,
+              prevalence = ~Type, data = out1$meta)
+
+labels1 <- labelTopics(model1)
+labels1
+
+plot(model1, n = 10, main = 'Topic Model: Industrial + Housing')
+
+model1_diff <- estimateEffect(1:10 ~ Type, model1, meta = out1$meta)
+
+plot(model1_diff, covariate = 'Type', topics = c(2,3,4,6,7,9,10),
+     model = model1, method = "difference",
+     cov.value1 = "Industrial", cov.value2 = "Housing",
+     xlab = "Most Housing          Most Industrial", 
+     main = 'Industrial vs. Housing Covariate Level',
      xlim = c(-.3,.3))
 
-findThoughts(model.stm.ontario.1, texts=out_ontario_indust_rec$meta$Text, topics=7, n=5)
+findThoughts(model1, texts=out1$meta$Clean_Text, topics=3, n=1)
+findThoughts(model1, texts=out1$meta$Clean_Text, topics=10, n=1)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 
-plot(model.stm.ontario.1, type = "perspectives", topics = c(9, 7), 
-     main = 'Topic Contrast Warehousing vs. Recreation', ylab = c("Warehousing", "Recreation"))
+plot(model1, type = 'perspectives', topics = c(3,10), main = 'Topic Contrast Industrial vs. Housing')
 
-# Industrial vs. Housing 
 
-temp_ontario_indust_hou <- textProcessor(documents = ontario_indust_hou$Text, 
-                                         metadata = ontario_indust_hou, 
-                                         customstopwords = remove_ontario)
+########################
 
-out_ontario_indust_hou <- prepDocuments(temp_ontario_indust_hou$documents, 
-                                        temp_ontario_indust_hou$vocab, 
-                                        temp_ontario_indust_hou$meta)
+# Industrial vs. Public Safety
+remove <- c('fontana', 'ontario', 'chino', 'rialto', 'citi', 'shall',
+            'council', 'page', 'city', 'meet', 'minute', 'minutes', 
+            'commission', 'regular', 'public', 'cities', 'march') 
 
-model.stm.ontario.2 <- stm(out_ontario_indust_hou$documents, out_ontario_indust_hou$vocab, K = 10,
-                           prevalence = ~Topic, data = out_ontario_indust_hou$meta)
-labels_ontario_2 <- labelTopics(model.stm.ontario.2)
-labels_ontario_2
-plot(model.stm.ontario.2, n=10, main = 'Top Topics Discussed: Warehousing + Housing')
+temp2 <- textProcessor(documents = industrial_safety$Clean_Text, 
+                       metadata = industrial_safety,
+                       customstopwords = remove)
 
-model.stm.ee.ont.2 <- estimateEffect(1:10 ~ Topic, model.stm.ontario.2, meta = out_ontario_indust_hou$meta)
+out2 <- prepDocuments(temp2$documents, 
+                      temp2$vocab, 
+                      temp2$meta)
 
-plot(model.stm.ee.ont.2, covariate = 'Topic', topics = c(3,5,6,10),
-     model = model.stm.ontario.2, method = "difference",
-     cov.value1 = "Warehousing", cov.value2 = "Housing",
-     xlab = " Most housing ... Most warehousing", main = 'Discussion of Warehousing vs. Housing',
+model2 <- stm(out2$documents, out2$vocab, K = 10,
+              prevalence = ~Type, data = out2$meta)
+
+labels2 <- labelTopics(model2)
+labels2
+
+plot(model2, n = 10, main = 'Topic Model: Industrial + Public Safety')
+
+model2_diff <- estimateEffect(1:10 ~ Type, model2, meta = out2$meta)
+
+plot(model2_diff, covariate = 'Type',
+     model = model2, method = "difference",
+     cov.value1 = "Industrial", cov.value2 = "Public Safety",
+     xlab = "Most Public Safety          Most Industrial", 
+     main = 'Industrial vs. Public Safety Covariate Level',
      xlim = c(-.3,.3))
 
-findThoughts(model.stm.ontario.2, texts=out_ontario_indust_hou$meta$Text, topics= 6, n=1)
+findThoughts(model2, texts=out2$meta$Clean_Text, topics=4, n=1)
+findThoughts(model2, texts=out2$meta$Clean_Text, topics=7, n=1)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 
-plot(model.stm.ontario.2, type = "perspectives", topics = c(3, 10), 
-     main = 'Topic Contrast Warehousing vs. Housing')
+plot(model2, type = 'perspectives', topics = c(4,7), main = 'Topic Contrast Industrial vs. Public Safety')
 
-# Industrial vs. Transportation 
+##############################
 
-temp_ontario_indust_trans <- textProcessor(documents = ontario_indust_trans$Text, 
-                                           metadata = ontario_indust_trans, 
-                                           customstopwords = remove_ontario)
+# Industrial vs. Jobs and Economy
+remove <- c('fontana', 'ontario', 'chino', 'rialto', 'citi', 'shall',
+            'council', 'page', 'city', 'meet', 'minute', 'minutes', 
+            'commission', 'regular', 'public', 'cities', 'march') 
 
-out_ontario_indust_trans <- prepDocuments(temp_ontario_indust_trans$documents, 
-                                          temp_ontario_indust_trans$vocab, 
-                                          temp_ontario_indust_trans$meta)
+temp3 <- textProcessor(documents = industrial_jobs$Clean_Text, 
+                       metadata = industrial_jobs,
+                       customstopwords = remove)
 
-model.stm.ontario.3 <- stm(out_ontario_indust_trans$documents, out_ontario_indust_trans$vocab, K = 10,
-                           prevalence = ~Topic, data = out_ontario_indust_trans$meta)
-labels_ontario_3 <- labelTopics(model.stm.ontario.3)
-labels_ontario_3
-plot(model.stm.ontario.3, n=10, main = 'Top Topics Discussed: Warehousing + Transportation')
+out3 <- prepDocuments(temp3$documents, 
+                      temp3$vocab, 
+                      temp3$meta)
 
-model.stm.ee.ont.3 <- estimateEffect(1:10 ~ Topic, model.stm.ontario.3, meta = out_ontario_indust_trans$meta)
+model3 <- stm(out3$documents, out3$vocab, K = 10,
+              prevalence = ~Type, data = out3$meta)
 
-plot(model.stm.ee.ont.3, covariate = 'Topic', #topics = c(2,3,6,9,10),
-     model = model.stm.ontario.3, method = "difference",
-     cov.value1 = "Warehousing", cov.value2 = "Transportation",
-     xlab = " Most transportation ... Most warehousing", main = 'Discussion of Warehousing vs. Transportation',
+labels3 <- labelTopics(model3)
+labels3
+
+plot(model3, n = 10, main = 'Topic Model: Industrial + Jobs & Economy')
+
+
+model3_diff <- estimateEffect(1:10 ~ Type, model3, meta = out3$meta)
+
+plot(model3_diff, covariate = 'Type', topics = c(2, 3, 4, 5, 9, 10),
+     model = model3, method = "difference",
+     cov.value1 = "Industrial", cov.value2 = "Jobs & Economy",
+     xlab = "Most Jobs & Economy          Most Industrial", 
+     main = 'Industrial vs. Jobs & Economy Covariate Level',
      xlim = c(-.3,.3))
 
-findThoughts(model.stm.ontario.3, texts=out_ontario_indust_trans$meta$Text, topics = 10, n=3)
+findThoughts(model3, texts=out3$meta$Clean_Text, topics=9, n=1)
+findThoughts(model3, texts=out3$meta$Clean_Text, topics=3, n=1)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 
-plot(model.stm.ontario.3, type = "perspectives", topics = c(9, 10), 
-     main = 'Topic Contrast Warehousing vs. Transportation')
+plot(model3, type = 'perspectives', topics = c(9,3), main = 'Topic Contrast Industrial vs. Jobs & Economy')
