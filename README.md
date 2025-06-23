@@ -38,4 +38,8 @@ Applying a STM model to my data, H2 is supported, that the language and context 
 issues.
 <img width="1470" alt="Industrial_Job_Perspective" src="https://github.com/user-attachments/assets/ce175623-631d-430e-b546-6db2da4179d8" />
 
+Additional plots and figures can be found in `Figures`, maps can be found in `Maps`, and the final paper can be found in `Thesis`.
+
+## Information on Project
+This research project began as an Independent Study ( [POLI 199] (https://polisci.ucsd.edu/undergrad/research-opportunities/Independent%20Study%20-%20POLI%20199.html) ) in the Political Science Deparatment at UC San Diego in 2023.
 
